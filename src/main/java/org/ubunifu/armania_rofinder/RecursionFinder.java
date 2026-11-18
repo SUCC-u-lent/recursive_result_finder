@@ -4,7 +4,7 @@ import java.util.*;
 import java.util.concurrent.*;
 
 public class RecursionFinder implements AutoCloseable {
-    private final ExecutorService EXECUTOR_SERVICE = Executors.newCachedThreadPool();
+    private final ForkJoinPool EXECUTOR_SERVICE = new ForkJoinPool();
     private final Set<RecursionResult> RESULTS = ConcurrentHashMap.newKeySet();
     private final Set<CompletableFuture<Void>> TASKS = ConcurrentHashMap.newKeySet();
     private RecursionFinder(ROContext input, ROPro processor) {
