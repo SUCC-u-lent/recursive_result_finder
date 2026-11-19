@@ -6,19 +6,17 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.geom.RoundRectangle2D;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Collectors;
 
 /**
  * Optional Swing graph visualiser for recursive searches.
  *
- * Usage:
- *   ROSearchGraphVisualizer visualizer = new ROSearchGraphVisualizer();
- *   visualizer.showWindow();
- *   RecursionFinder.findResult(processor, visualizer);
- *
  * The finder itself has no dependency on this class. Applications that do not
- * want a visual window simply use the normal findResult(processor) overload.
+ * want a visual window can use findResult(processor) or
+ * findBestResultWithPath(processor) without creating a visualiser.
  */
 public final class ROSearchGraphVisualizer implements ROSearchListener {
 
@@ -33,6 +31,7 @@ public final class ROSearchGraphVisualizer implements ROSearchListener {
     private final JLabel stats = new JLabel("  Waiting for search...");
     private final Map<Long, GraphNode> nodes = new ConcurrentHashMap<>();
     private final Map<Integer, AtomicInteger> levelSlots = new ConcurrentHashMap<>();
+    private volatile Set<Long> winningNodeIds = Set.of();
 
     private final AtomicInteger visited = new AtomicInteger();
     private final AtomicInteger running = new AtomicInteger();
@@ -60,18 +59,14 @@ public final class ROSearchGraphVisualizer implements ROSearchListener {
             String branchLabel,
             ROPro<?> processor) {
 
-        int depth = parentId == null ? 0 : nodes.get(parentId).depth + 1;
+        GraphNode parent = parentId == null ? null : nodes.get(parentId);
+        int depth = parent == null ? 0 : parent.depth + 1;
         int slot = levelSlots.computeIfAbsent(depth, ignored -> new AtomicInteger())
                 .getAndIncrement();
 
         GraphNode node = new GraphNode(
-                nodeId,
-                parentId,
-                depth,
-                slot,
-                branchLabel,
-                String.valueOf(processor.getContext())
-        );
+                nodeId, parentId, depth, slot, branchLabel,
+                String.valueOf(processor.getContext()));
         nodes.put(nodeId, node);
 
         visited.incrementAndGet();
@@ -102,11 +97,31 @@ public final class ROSearchGraphVisualizer implements ROSearchListener {
         });
     }
 
-    private void updateStats() {
-        stats.setText("  Nodes: " + visited.get()
+    @Override
+    public void onSearchCompleted(ROResultPath bestResult) {
+        winningNodeIds = bestResult == null
+                ? Set.of()
+                : bestResult.path().stream()
+                    .map(ROPathStep::nodeId)
+                    .collect(Collectors.toUnmodifiableSet());
+
+        SwingUtilities.invokeLater(() -> {
+            stats.setText(bestResult == null
+                    ? statsText() + "     No winning result"
+                    : statsText() + "     Winning route highlighted");
+            graph.repaint();
+        });
+    }
+
+    private String statsText() {
+        return "  Nodes: " + visited.get()
                 + "     Active: " + running.get()
                 + "     Resolved: " + resolved.get()
-                + "     Failed: " + failed.get());
+                + "     Failed: " + failed.get();
+    }
+
+    private void updateStats() {
+        stats.setText(statsText());
     }
 
     private static final class GraphNode {
@@ -128,13 +143,8 @@ public final class ROSearchGraphVisualizer implements ROSearchListener {
             this.context = context;
         }
 
-        int x() {
-            return MARGIN + slot * (NODE_WIDTH + HORIZONTAL_GAP);
-        }
-
-        int y() {
-            return MARGIN + depth * (NODE_HEIGHT + VERTICAL_GAP);
-        }
+        int x() { return MARGIN + slot * (NODE_WIDTH + HORIZONTAL_GAP); }
+        int y() { return MARGIN + depth * (NODE_HEIGHT + VERTICAL_GAP); }
     }
 
     private final class GraphPanel extends JPanel {
@@ -162,19 +172,25 @@ public final class ROSearchGraphVisualizer implements ROSearchListener {
                     RenderingHints.VALUE_ANTIALIAS_ON);
 
             Map<Long, GraphNode> snapshot = Map.copyOf(nodes);
-            // Edges are drawn before nodes so they remain behind the node cards.
+            Set<Long> winning = winningNodeIds;
+
+            // Draw connectors first; connectors on the selected route are highlighted.
             for (GraphNode node : snapshot.values()) {
                 if (node.parentId == null) continue;
                 GraphNode parent = snapshot.get(node.parentId);
                 if (parent == null) continue;
 
+                boolean isWinningEdge = winning.contains(node.id)
+                        && winning.contains(parent.id);
+                g.setColor(isWinningEdge
+                        ? new Color(218, 145, 25)
+                        : new Color(145, 153, 168));
+                g.setStroke(new BasicStroke(isWinningEdge ? 4f : 2f));
+
                 int x1 = parent.x() + NODE_WIDTH / 2;
                 int y1 = parent.y() + NODE_HEIGHT;
                 int x2 = node.x() + NODE_WIDTH / 2;
                 int y2 = node.y();
-
-                g.setColor(new Color(145, 153, 168));
-                g.setStroke(new BasicStroke(2f));
                 int bendY = y1 + (y2 - y1) / 2;
                 g.drawLine(x1, y1, x1, bendY);
                 g.drawLine(x1, bendY, x2, bendY);
@@ -182,12 +198,12 @@ public final class ROSearchGraphVisualizer implements ROSearchListener {
             }
 
             for (GraphNode node : snapshot.values()) {
-                drawNode(g, node);
+                drawNode(g, node, winning.contains(node.id));
             }
             g.dispose();
         }
 
-        private void drawNode(Graphics2D g, GraphNode node) {
+        private void drawNode(Graphics2D g, GraphNode node, boolean isWinning) {
             Color border;
             Color fill;
             String statusText;
@@ -206,18 +222,23 @@ public final class ROSearchGraphVisualizer implements ROSearchListener {
                 statusText = "FAILED";
             }
 
+            if (isWinning) {
+                border = new Color(218, 145, 25);
+                fill = new Color(255, 247, 224);
+            }
+
             int x = node.x();
             int y = node.y();
-
             g.setColor(fill);
             g.fill(new RoundRectangle2D.Float(x, y, NODE_WIDTH, NODE_HEIGHT, 16, 16));
             g.setColor(border);
-            g.setStroke(new BasicStroke(2f));
+            g.setStroke(new BasicStroke(isWinning ? 4f : 2f));
             g.draw(new RoundRectangle2D.Float(x, y, NODE_WIDTH, NODE_HEIGHT, 16, 16));
 
             g.setFont(getFont().deriveFont(Font.BOLD, 13f));
             g.setColor(new Color(35, 43, 58));
-            g.drawString(clip(g, node.label + "  #" + node.id, NODE_WIDTH - 20), x + 12, y + 22);
+            String heading = node.label + "  #" + node.id + (isWinning ? "  ★ WINNING" : "");
+            g.drawString(clip(g, heading, NODE_WIDTH - 20), x + 12, y + 22);
 
             g.setFont(getFont().deriveFont(Font.PLAIN, 11f));
             g.setColor(new Color(70, 78, 94));
