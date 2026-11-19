@@ -4,7 +4,7 @@ public interface ROSearchListener {
 
     ROSearchListener NONE = new ROSearchListener() {};
 
-    default void onNodeCreated(
+     default void onNodeCreated(
             long nodeId,
             Long parentId,
             String branchLabel,
