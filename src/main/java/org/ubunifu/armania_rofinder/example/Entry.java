@@ -16,20 +16,26 @@ public class Entry {
         ROSearchGraphVisualizer visualizer = new ROSearchGraphVisualizer();
         visualizer.showWindow();
 
-        CompletableFuture<@Nullable ROResult> resultCompletableFuture =
-                RecursionFinder.findResult(processor, visualizer);
+        CompletableFuture<@Nullable ROResultPath> resultCompletableFuture =
+                RecursionFinder.findBestResultWithPath(processor, visualizer);
 
-        @Nullable ROResult result = resultCompletableFuture
+        @Nullable ROResultPath best = resultCompletableFuture
                 .orTimeout(1, TimeUnit.MINUTES)
                 .join();
 
-        if (result == null) {
+        if (best == null) {
             System.out.println("No resolved result found.");
             return;
         }
 
+        ROResult result = best.result();
         System.out.println("Weight: " + result.getWeight()
                 + " Heuristics: " + result.getEffectiveHeuristic()
                 + " error: " + result.getError());
+
+        System.out.println("Winning route:");
+        for (int i = 1; i < best.path().size(); i++) {
+            System.out.println(i + ". " + best.path().get(i).branchLabel());
+        }
     }
 }
