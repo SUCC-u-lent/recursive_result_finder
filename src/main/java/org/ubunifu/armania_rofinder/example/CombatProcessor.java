@@ -20,11 +20,7 @@ public class CombatProcessor extends ROPro<CombatContext> {
                 + context.allyHealth
                 - context.enemyHealth;
 
-        return new ROResult(
-                weight,
-                weight,
-                0
-        );
+        return new ROResult(weight, weight, 0);
     }
 
     @Override
@@ -44,38 +40,39 @@ public class CombatProcessor extends ROPro<CombatContext> {
         ATTACK {
             @Override
             public ROBranch<CombatContext> createBranch(CombatContext context) {
-                ROPro<CombatContext> pro = new CombatProcessor(context.hurtEnemy(1));
-                return new ROBranch<>(pro);
+                return new ROBranch<>(name(),
+                        new CombatProcessor(context.hurtEnemy(1)));
             }
         },
         HEAL_SELF {
             @Override
             public ROBranch<CombatContext> createBranch(CombatContext context) {
-                ROPro<CombatContext> pro = new CombatProcessor(context.healSelf(1));
-                return new ROBranch<>(pro);
+                return new ROBranch<>(name(),
+                        new CombatProcessor(context.healSelf(1)));
             }
         },
         HEAL_OTHER {
             @Override
             public ROBranch<CombatContext> createBranch(CombatContext context) {
-                ROPro<CombatContext> pro = new CombatProcessor(context.healAlly(1));
-                return new ROBranch<>(pro);
+                return new ROBranch<>(name(),
+                        new CombatProcessor(context.healAlly(1)));
             }
         },
         WAIT {
             @Override
             public ROBranch<CombatContext> createBranch(CombatContext context) {
-                return new ROBranch<>(new CombatProcessor(context.healSelf(-1)));
+                return new ROBranch<>(name(),
+                        new CombatProcessor(context.healSelf(-1)));
             }
-        }
-        ;
+        };
+
         public abstract ROBranch<CombatContext> createBranch(CombatContext context);
     }
 
     @Override
     public List<ROBranch<CombatContext>> createBranches() {
         return Arrays.stream(Move.values())
-                .map(e->e.createBranch(this.context))
+                .map(move -> move.createBranch(context))
                 .toList();
     }
 }
