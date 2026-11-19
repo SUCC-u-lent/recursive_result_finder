@@ -19,7 +19,7 @@ public class CombatProcessor extends ROPro<CombatContext> {
                 + context.allyHealth
                 - (context.enemyHealth * 2); // enemy weight more.
 
-        return new ROResult(this,this.context,weight, weight, 0);
+        return new ROResult(this, context, weight, weight, 0);
     }
 
     @Override
@@ -39,8 +39,6 @@ public class CombatProcessor extends ROPro<CombatContext> {
         ATTACK {
             @Override
             public ROBranch<CombatContext> createBranch(CombatContext context) {
-                CombatProcessor previousProcessor = context.getPreviousResult() != null ? context.getPreviousResult().getUsedProcessor() : null;
-                if (previousProcessor != null && previousProcessor.getStatus() == GUARD) return new ROBranch<>(name(), new CombatProcessor(context));
                 return new ROBranch<>(name(), new CombatProcessor(context.hurtEnemy(1)));
             }
         },
@@ -62,10 +60,10 @@ public class CombatProcessor extends ROPro<CombatContext> {
                 return new ROBranch<>(name(), new CombatProcessor(context.guard()));
             }
         },
-        WAIT {
+        INCOMING_ATTACK {
             @Override
             public ROBranch<CombatContext> createBranch(CombatContext context) {
-                return new ROBranch<>(name(), new CombatProcessor(context.healSelf(-1)));
+                return new ROBranch<>(name(), new CombatProcessor(context.receiveAttack(1)));
             }
         };
 
