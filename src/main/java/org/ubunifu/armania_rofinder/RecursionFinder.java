@@ -7,51 +7,61 @@ import java.util.concurrent.*;
 
 public final class RecursionFinder {
 
-    public static final ForkJoinPool FORK_JOIN_POOL = new ForkJoinPool();
+    private static final ForkJoinPool FORK_JOIN_POOL = new ForkJoinPool();
 
-    public static CompletableFuture<@Nullable ROResult> findResult(ROPro processor) {
+    public static <C extends ROContext> CompletableFuture<@Nullable ROResult> findResult(
+            ROPro<C> processor) {
+
         return findResultsAsync(processor)
-                .thenApply(results->results.stream()
-                        .min(Comparator.comparing(ROResult::getEffectiveHeuristic))
+                .thenApply(results -> results.stream()
+                        .min(Comparator.comparing(
+                                ROResult::getEffectiveHeuristic))
                         .orElse(null));
     }
-    public static CompletableFuture<Set<ROResult>> findResultsAsync(ROPro processor) {
+
+    public static <C extends ROContext> CompletableFuture<Set<ROResult>> findResultsAsync(
+            ROPro<C> processor) {
 
         Set<ROResult> results = ConcurrentHashMap.newKeySet();
-
-        // Perform the initial check on the calling thread.
-        ROResult result = processor.process();
-        results.add(result);
-
-        // Start exploring every initial branch asynchronously.
-        List<CompletableFuture<Void>> tasks =
-                processor.createBranches().stream()
-                        .map(branch -> exploreAsync(
-                                branch.processor(),
-                                results))
-                        .toList();
-
-        return CompletableFuture.allOf(
-                tasks.toArray(CompletableFuture[]::new)
-        ).thenApply(ignored -> results);
+        return CompletableFuture.supplyAsync(processor::process)
+                .thenComposeAsync(result-> continueExploring(processor, result, results)
+                .thenApply(ignored -> results));
     }
-    private static CompletableFuture<Void> exploreAsync(ROPro processor, Set<ROResult> results) {
 
-        return CompletableFuture.runAsync(() -> {
-            ROResult result = processor.process();
-            results.add(result);
+    private static <C extends ROContext> CompletableFuture<Void> exploreAsync(
+            ROPro<C> processor,
+            Set<ROResult> results) {
+        return CompletableFuture
+                .supplyAsync(processor::process, FORK_JOIN_POOL)
+                .thenCompose(result ->
+                        continueExploring(processor, result, results));
+    }
 
-            List<CompletableFuture<Void>> tasks =
-                    processor.createBranches().stream()
-                            .map(branch -> exploreAsync(
-                                    branch.processor(),
-                                    results))
-                            .toList();
+    private static <C extends ROContext> CompletableFuture<Void> continueExploring(
+            ROPro<C> processor,
+            ROResult result,
+            Set<ROResult> results) {
 
-            CompletableFuture.allOf(
-                    tasks.toArray(CompletableFuture[]::new)
-            ).join();
+        return switch (processor.getStatus()) {
 
-        }, FORK_JOIN_POOL);
+            case FAILED -> CompletableFuture.completedFuture(null);
+
+            case RESOLVED -> {
+                results.add(result);
+                yield CompletableFuture.completedFuture(null);
+            }
+
+            case PROCESSING -> {
+                List<CompletableFuture<Void>> tasks =
+                        processor.createBranches().stream()
+                                .map(branch -> exploreAsync(
+                                        branch.processor(),
+                                        results))
+                                .toList();
+
+                yield CompletableFuture.allOf(
+                        tasks.toArray(CompletableFuture[]::new));
+            }
+        };
     }
 }
