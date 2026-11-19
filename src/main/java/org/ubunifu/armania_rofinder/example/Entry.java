@@ -2,6 +2,7 @@ package org.ubunifu.armania_rofinder.example;
 
 import org.jetbrains.annotations.Nullable;
 import org.ubunifu.armania_rofinder.*;
+import org.ubunifu.armania_rofinder.visualizer.ROSearchGraphVisualizer;
 
 import java.util.concurrent.*;
 
@@ -12,7 +13,7 @@ public class Entry {
         CombatContext context = new CombatContext(100, 100, 3);
         CombatProcessor processor = new CombatProcessor(context);
 
-        ROSearchVisualizer visualizer = new ROSearchVisualizer();
+        ROSearchGraphVisualizer visualizer = new ROSearchGraphVisualizer();
         visualizer.showWindow();
 
         CompletableFuture<@Nullable ROResult> resultCompletableFuture =
