@@ -11,7 +11,7 @@ public class Entry {
         CombatContext context = new CombatContext(100,100,100);
         CombatProcessor processor = new CombatProcessor(context);
         CompletableFuture<@Nullable ROResult> resultCompletableFuture = RecursionFinder.findResult(processor);
-        @Nullable ROResult result = resultCompletableFuture.orTimeout(10, TimeUnit.SECONDS).join();
+        @Nullable ROResult result = resultCompletableFuture.orTimeout(1, TimeUnit.MINUTES).join();
         if (result == null) return;
         System.out.println("Weight: "+result.getWeight()+" Heuristics: "+result.getEffectiveHeuristic()+" error: "+result.getError());
     }

@@ -29,8 +29,7 @@ public class CombatProcessor extends ROPro<CombatContext> {
 
     @Override
     public ROStatus getStatus() {
-
-        if (context.actorHealth <= 0) {
+        if (context.actorHealth <= 0 || context.usedTurns > 20) {
             return ROStatus.FAILED;
         }
 
