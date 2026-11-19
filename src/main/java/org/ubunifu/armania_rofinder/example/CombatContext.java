@@ -13,6 +13,7 @@ public class CombatContext extends ROContext {
         this.allyHealth = allyHealth;
         this.enemyHealth = enemyHealth;
     }
+
     public CombatContext(CombatContext previousContext, int usedTurns, int actorHealth, int allyHealth, int enemyHealth) {
         super(previousContext);
         this.usedTurns = usedTurns;
@@ -31,33 +32,19 @@ public class CombatContext extends ROContext {
     }
 
     public CombatContext hurtEnemy(int amount) {
-        return new CombatContext(
-                this,
-                this.usedTurns + 1,
-                this.actorHealth,
-                this.allyHealth,
-                this.enemyHealth - amount
-        );
+        return new CombatContext(this, usedTurns + 1, actorHealth, allyHealth, enemyHealth - amount);
     }
 
     public CombatContext healAlly(int amount) {
-        return new CombatContext(
-                this,
-                this.usedTurns + 1,
-                this.actorHealth,
-                this.allyHealth + amount,
-                this.enemyHealth
-        );
+        return new CombatContext(this, usedTurns + 1, actorHealth, allyHealth + amount, enemyHealth);
     }
 
     public CombatContext healSelf(int amount) {
-        return new CombatContext(
-                this,
-                this.usedTurns + 1,
-                this.actorHealth + amount,
-                this.allyHealth,
-                this.enemyHealth
-        );
+        return new CombatContext(this, usedTurns + 1, actorHealth + amount, allyHealth, enemyHealth);
+    }
+
+    public CombatContext guard() {
+        return new CombatContext(this, usedTurns + 1, actorHealth, allyHealth, enemyHealth);
     }
 
     @Override
