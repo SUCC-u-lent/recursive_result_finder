@@ -3,7 +3,7 @@ package org.ubunifu.armania_rofinder;
 public final class ROResult {
     final ROPro<? extends ROContext> usedProcessor;
     final ROContext usedContext;
-    final double weight, heuristic;
+    double weight, heuristic;
     final double error;
 
     public ROResult(ROPro<? extends ROContext> usedProcessor, ROContext usedContext, double weight, double heuristic, double error) {
@@ -41,5 +41,10 @@ public final class ROResult {
     public <C extends ROContext> C getUsedContext() {
         //noinspection unchecked
         return (C) usedContext;
+    }
+
+    void addWeight(int weight) {
+        this.weight += weight;
+        this.heuristic += weight;
     }
 }

@@ -11,6 +11,29 @@ public final class RecursionFinder {
     private static final ForkJoinPool FORK_JOIN_POOL = new ForkJoinPool();
 
     private RecursionFinder() {}
+    private static ROResultPath findBest(Set<ROResultPath> paths, boolean invertHeuristics) {
+        if (invertHeuristics)
+            return paths.stream().anyMatch(e->e.status() == ROStatus.RESOLVED)
+                    ? paths.stream()
+                    .filter(e->e.status() == ROStatus.RESOLVED)
+                    .max(Comparator.comparing(r->r.result().getEffectiveHeuristic()))
+                    .orElse(null)
+                    : paths.stream()
+                    .filter(e->e.status() == ROStatus.TRUNCATED)
+                    .max(Comparator.comparing(r->r.result().getEffectiveHeuristic()))
+                    .orElse(null);
+        else
+            return paths.stream().anyMatch(e->e.status() == ROStatus.RESOLVED)
+                    ? paths.stream()
+                      .filter(e->e.status() == ROStatus.RESOLVED)
+                      .min(Comparator.comparing(r->r.result().getEffectiveHeuristic()))
+                      .orElse(null)
+                    : paths.stream()
+                      .filter(e->e.status() == ROStatus.TRUNCATED)
+                      .min(Comparator.comparing(r->r.result().getEffectiveHeuristic()))
+                      .orElse(null);
+    }
+
     public static <C extends ROContext> CompletableFuture<@Nullable ROResultPath> findBestResultWithPath(ROPro<C> processor) {
         return findBestResultWithPath(processor, ROSearchListener.NONE, false);
     }
@@ -23,13 +46,7 @@ public final class RecursionFinder {
     public static <C extends ROContext> CompletableFuture<@Nullable ROResultPath> findBestResultWithPath(ROPro<C> processor, ROSearchListener listener, boolean invertHeuristics) {
         return findResultsWithPathsAsync(processor, listener)
                 .thenApply(results -> {
-                    ROResultPath best = invertHeuristics
-                            ? results.stream()
-                                .max(Comparator.comparing(c->c.result().getEffectiveHeuristic()))
-                                .orElse(null)
-                            : results.stream()
-                                .min(Comparator.comparing(c->c.result().getEffectiveHeuristic()))
-                                .orElse(null);
+                    ROResultPath best = findBest(results, invertHeuristics);
                     notifySearchCompleted(listener, best);
                     return best;
                 });
@@ -89,9 +106,9 @@ public final class RecursionFinder {
         notifyCompleted(listener, nodeId, status, result);
 
         return switch (status) {
-            case FAILED, TRUNCATED -> CompletableFuture.completedFuture(null);
-            case RESOLVED -> {
-                results.add(new ROResultPath(result, path));
+            case FAILED -> CompletableFuture.completedFuture(null);
+            case RESOLVED, TRUNCATED -> {
+                results.add(new ROResultPath(result, path, status));
                 yield CompletableFuture.completedFuture(null);
             }
             case PROCESSING -> {
