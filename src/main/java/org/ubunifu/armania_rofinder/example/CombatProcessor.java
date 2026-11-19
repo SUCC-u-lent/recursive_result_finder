@@ -58,7 +58,7 @@ public class CombatProcessor extends ROPro<CombatContext> {
         GUARD {
             @Override
             public ROBranch<CombatContext> createBranch(CombatContext context) {
-                return new ROBranch<>(name(),new CombatProcessor(context)); // Does nothing TECHNICALLY. it affects others.
+                return new ROBranch<>(name(), new CombatProcessor(context.guard()));
             }
         },
         WAIT {
