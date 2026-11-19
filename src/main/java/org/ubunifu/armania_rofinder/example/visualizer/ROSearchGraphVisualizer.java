@@ -1,4 +1,4 @@
-package org.ubunifu.armania_rofinder.visualizer;
+package org.ubunifu.armania_rofinder.example.visualizer;
 
 import org.ubunifu.armania_rofinder.*;
 
