@@ -47,15 +47,19 @@ public class CombatContext extends ROContext {
         return next(actorHealth + amount, allyHealth, enemyHealth, false);
     }
 
-    /** Arms a one-use guard against the next incoming attack on the actor. */
+    /** Sets up protection against the enemy's counterattack this turn. */
     public CombatContext guard() {
         return next(actorHealth, allyHealth, enemyHealth, true);
     }
 
-    /** Applies the next incoming attack, consuming guard if it is active. */
+    /** Resolves the enemy's automatic counterattack; guard blocks it once. */
     public CombatContext receiveAttack(int damage) {
+        if (enemyHealth <= 0) {
+            return this;
+        }
+
         int resultingHealth = guarding ? actorHealth : actorHealth - damage;
-        return next(resultingHealth, allyHealth, enemyHealth, false);
+        return new CombatContext(this, usedTurns, resultingHealth, allyHealth, enemyHealth, false);
     }
 
     public boolean isGuarding() {
