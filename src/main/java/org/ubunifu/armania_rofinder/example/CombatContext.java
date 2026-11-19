@@ -19,7 +19,7 @@ public class CombatContext extends ROContext {
 
     public CombatContext hurtEnemy(int amount) {
         return new CombatContext(
-                this.usedTurns+1,
+                this.usedTurns + 1,
                 this.actorHealth,
                 this.allyHealth,
                 this.enemyHealth - amount
@@ -28,7 +28,7 @@ public class CombatContext extends ROContext {
 
     public CombatContext healAlly(int amount) {
         return new CombatContext(
-                this.usedTurns+1,
+                this.usedTurns + 1,
                 this.actorHealth,
                 this.allyHealth + amount,
                 this.enemyHealth
@@ -37,10 +37,18 @@ public class CombatContext extends ROContext {
 
     public CombatContext healSelf(int amount) {
         return new CombatContext(
-                this.usedTurns+1,
+                this.usedTurns + 1,
                 this.actorHealth + amount,
                 this.allyHealth,
                 this.enemyHealth
         );
+    }
+
+    @Override
+    public String toString() {
+        return "Turn " + usedTurns
+                + " | Actor HP: " + actorHealth
+                + " | Ally HP: " + allyHealth
+                + " | Enemy HP: " + enemyHealth;
     }
 }
