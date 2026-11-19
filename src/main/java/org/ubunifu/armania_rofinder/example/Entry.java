@@ -3,7 +3,7 @@ package org.ubunifu.armania_rofinder.example;
 import org.jetbrains.annotations.Nullable;
 import org.ubunifu.armania_rofinder.*;
 
-import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.*;
 
 public class Entry {
     public static void main(String[] args) {
@@ -11,7 +11,7 @@ public class Entry {
         CombatContext context = new CombatContext(100,100,100);
         CombatProcessor processor = new CombatProcessor(context);
         CompletableFuture<@Nullable ROResult> resultCompletableFuture = RecursionFinder.findResult(processor);
-        @Nullable ROResult result = resultCompletableFuture.join();
+        @Nullable ROResult result = resultCompletableFuture.orTimeout(10, TimeUnit.SECONDS).join();
         if (result == null) return;
         System.out.println("Weight: "+result.getWeight()+" Heuristics: "+result.getEffectiveHeuristic()+" error: "+result.getError());
     }

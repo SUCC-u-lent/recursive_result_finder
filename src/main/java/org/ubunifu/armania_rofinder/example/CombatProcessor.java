@@ -66,7 +66,7 @@ public class CombatProcessor extends ROPro<CombatContext> {
         WAIT {
             @Override
             public ROBranch<CombatContext> createBranch(CombatContext context) {
-                return new ROBranch<>(new CombatProcessor(context));
+                return new ROBranch<>(new CombatProcessor(context.healSelf(-1)));
             }
         }
         ;
