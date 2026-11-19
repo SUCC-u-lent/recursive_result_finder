@@ -5,6 +5,9 @@ import org.ubunifu.armania_rofinder.*;
 import javax.swing.*;
 import java.awt.*;
 import java.awt.geom.RoundRectangle2D;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
+import javax.swing.JViewport;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -151,6 +154,53 @@ public final class ROSearchGraphVisualizer implements ROSearchListener {
         GraphPanel() {
             setBackground(new Color(248, 249, 252));
             setOpaque(true);
+
+            // Dragging the canvas pans the scrollable graph in any direction.
+            MouseAdapter panHandler = new MouseAdapter() {
+                private Point dragOrigin;
+                private Point viewportOrigin;
+
+                @Override
+                public void mousePressed(MouseEvent event) {
+                    JViewport viewport = (JViewport) SwingUtilities.getAncestorOfClass(
+                            JViewport.class, GraphPanel.this);
+                    if (viewport == null) return;
+
+                    dragOrigin = event.getPoint();
+                    viewportOrigin = viewport.getViewPosition();
+                    setCursor(Cursor.getPredefinedCursor(Cursor.MOVE_CURSOR));
+                }
+
+                @Override
+                public void mouseDragged(MouseEvent event) {
+                    if (dragOrigin == null || viewportOrigin == null) return;
+
+                    JViewport viewport = (JViewport) SwingUtilities.getAncestorOfClass(
+                            JViewport.class, GraphPanel.this);
+                    if (viewport == null) return;
+
+                    int x = viewportOrigin.x + dragOrigin.x - event.getX();
+                    int y = viewportOrigin.y + dragOrigin.y - event.getY();
+
+                    int maxX = Math.max(0, getWidth() - viewport.getWidth());
+                    int maxY = Math.max(0, getHeight() - viewport.getHeight());
+                    viewport.setViewPosition(new Point(
+                            Math.max(0, Math.min(x, maxX)),
+                            Math.max(0, Math.min(y, maxY))));
+                }
+
+                @Override
+                public void mouseReleased(MouseEvent event) {
+                    dragOrigin = null;
+                    viewportOrigin = null;
+                    setCursor(Cursor.getDefaultCursor());
+                }
+            };
+
+            addMouseListener(panHandler);
+            addMouseMotionListener(panHandler);
+            setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+            setToolTipText("Click and drag to move around the graph");
         }
 
         void refreshSize(Map<Long, GraphNode> nodes) {
