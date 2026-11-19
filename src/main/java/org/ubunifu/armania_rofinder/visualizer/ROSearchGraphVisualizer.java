@@ -137,7 +137,7 @@ public final class ROSearchGraphVisualizer implements ROSearchListener {
         }
     }
 
-    private static final class GraphPanel extends JPanel {
+    private final class GraphPanel extends JPanel {
         GraphPanel() {
             setBackground(new Color(248, 249, 252));
             setOpaque(true);
@@ -161,13 +161,7 @@ public final class ROSearchGraphVisualizer implements ROSearchListener {
             g.setRenderingHint(RenderingHints.KEY_ANTIALIASING,
                     RenderingHints.VALUE_ANTIALIAS_ON);
 
-            Map<Long, GraphNode> snapshot = Map.copyOf(
-                    ((ROSearchGraphVisualizer) SwingUtilities.getAncestorOfClass(
-                            ROSearchGraphVisualizer.class, this)) == null
-                            ? Map.of()
-                            : ((ROSearchGraphVisualizer) SwingUtilities.getAncestorOfClass(
-                                    ROSearchGraphVisualizer.class, this)).nodes
-            );
+            Map<Long, GraphNode> snapshot = Map.copyOf(nodes);
             // Edges are drawn before nodes so they remain behind the node cards.
             for (GraphNode node : snapshot.values()) {
                 if (node.parentId == null) continue;
