@@ -1,14 +1,10 @@
 package org.ubunifu.armania_rofinder;
 
-/**
- * Receives live notifications as the recursive finder visits processors.
- * Implementations should be thread-safe; callbacks may arrive from worker threads.
- */
 public interface ROSearchListener {
 
     ROSearchListener NONE = new ROSearchListener() {};
 
-    default void onNodeCreated(
+     default void onNodeCreated(
             long nodeId,
             Long parentId,
             String branchLabel,
@@ -18,4 +14,6 @@ public interface ROSearchListener {
             long nodeId,
             ROStatus status,
             ROResult result) {}
+
+    default void onSearchCompleted(ROResultPath bestResult) {}
 }

@@ -1,27 +1,28 @@
 package org.ubunifu.armania_rofinder;
 
-import java.util.*;
-
 public abstract class ROContext {
-    protected final int usedTurns;
-    protected final Map<ROContext, ROResult> previousContexts;
+    private final ROContext previousContext;
+    private ROResult result;
 
-    public ROContext(int usedTurns, Map<ROContext, ROResult> previousContexts) {
-        this.usedTurns = usedTurns;
-        this.previousContexts = previousContexts;
+    public ROContext() {
+        this(null);
     }
 
-    public int getUsedTurns() {
-        return usedTurns;
+    public ROContext(ROContext previousContext) {
+        this.previousContext = previousContext;
     }
 
-    protected final Map<ROContext, ROResult> addContext(ROContext context, ROResult result) {
-        HashMap<ROContext, ROResult> copied = new HashMap<>(this.previousContexts);
-        copied.put(context, result);
-        return new HashMap<>(copied);
+    protected abstract ROContext deepClone();
+
+    public ROResult getPreviousResult() {
+        return previousContext == null ? null : previousContext.result;
     }
 
-    public Map<ROContext, ROResult> getPreviousContexts() {
-        return previousContexts;
+    void setResult(ROResult result) {
+        this.result = result;
+    }
+
+    public ROContext getPreviousContext() {
+        return previousContext;
     }
 }
