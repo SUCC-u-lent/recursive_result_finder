@@ -12,21 +12,75 @@ public final class RecursionFinder {
 
     private RecursionFinder() {}
 
+    /**
+     * Backwards-compatible API: returns only the winning ROResult.
+     */
     public static <C extends ROContext> CompletableFuture<@Nullable ROResult> findResult(
             ROPro<C> processor) {
         return findResult(processor, ROSearchListener.NONE);
     }
 
+    /**
+     * Backwards-compatible API: returns only the winning ROResult.
+     */
     public static <C extends ROContext> CompletableFuture<@Nullable ROResult> findResult(
             ROPro<C> processor,
             ROSearchListener listener) {
-
-        return findResultsAsync(processor, listener)
-                .thenApply(results -> results.stream()
-                        .min(Comparator.comparing(ROResult::getEffectiveHeuristic))
-                        .orElse(null));
+        return findBestResultWithPath(processor, listener)
+                .thenApply(best -> best == null ? null : best.result());
     }
 
+    /**
+     * Returns the winning result and the exact route of branch labels that produced it.
+     * The existing lowest-effective-heuristic selection rule is preserved.
+     */
+    public static <C extends ROContext> CompletableFuture<@Nullable ROResultPath>
+    findBestResultWithPath(ROPro<C> processor) {
+        return findBestResultWithPath(processor, ROSearchListener.NONE);
+    }
+
+    public static <C extends ROContext> CompletableFuture<@Nullable ROResultPath>
+    findBestResultWithPath(ROPro<C> processor, ROSearchListener listener) {
+        return findResultsWithPathsAsync(processor, listener)
+                .thenApply(results -> {
+                    ROResultPath best = results.stream()
+                            .min(Comparator.comparing(
+                                    path -> path.result().getEffectiveHeuristic()))
+                            .orElse(null);
+                    notifySearchCompleted(listener, best);
+                    return best;
+                });
+    }
+
+    /**
+     * Returns every resolved result together with the route that produced it.
+     */
+    public static <C extends ROContext> CompletableFuture<Set<ROResultPath>>
+    findResultsWithPathsAsync(ROPro<C> processor) {
+        return findResultsWithPathsAsync(processor, ROSearchListener.NONE);
+    }
+
+    public static <C extends ROContext> CompletableFuture<Set<ROResultPath>>
+    findResultsWithPathsAsync(ROPro<C> processor, ROSearchListener listener) {
+        Objects.requireNonNull(listener, "listener");
+
+        Set<ROResultPath> results = ConcurrentHashMap.newKeySet();
+        AtomicLong nextNodeId = new AtomicLong(1);
+        long rootId = 0;
+        List<ROPathStep> rootPath = List.of(new ROPathStep(rootId, "ROOT"));
+
+        notifyCreated(listener, rootId, null, "ROOT", processor);
+
+        return CompletableFuture
+                .supplyAsync(processor::process, FORK_JOIN_POOL)
+                .thenCompose(result -> continueExploring(
+                        processor, result, results, listener, nextNodeId, rootId, rootPath))
+                .thenApply(ignored -> results);
+    }
+
+    /**
+     * Existing API: returns all resolved ROResult values without route metadata.
+     */
     public static <C extends ROContext> CompletableFuture<Set<ROResult>> findResultsAsync(
             ROPro<C> processor) {
         return findResultsAsync(processor, ROSearchListener.NONE);
@@ -35,45 +89,44 @@ public final class RecursionFinder {
     public static <C extends ROContext> CompletableFuture<Set<ROResult>> findResultsAsync(
             ROPro<C> processor,
             ROSearchListener listener) {
-
-        Objects.requireNonNull(listener, "listener");
-
-        Set<ROResult> results = ConcurrentHashMap.newKeySet();
-        AtomicLong nextNodeId = new AtomicLong(1);
-        long rootId = 0;
-
-        notifyCreated(listener, rootId, null, "ROOT", processor);
-
-        return CompletableFuture
-                .supplyAsync(processor::process, FORK_JOIN_POOL)
-                .thenCompose(result -> continueExploring(
-                        processor, result, results, listener, nextNodeId, rootId));
+        return findResultsWithPathsAsync(processor, listener)
+                .thenApply(paths -> {
+                    Set<ROResult> results = ConcurrentHashMap.newKeySet();
+                    paths.forEach(path -> results.add(path.result()));
+                    return results;
+                });
     }
 
     private static <C extends ROContext> CompletableFuture<Void> exploreAsync(
             ROPro<C> processor,
             String branchLabel,
             long parentId,
-            Set<ROResult> results,
+            List<ROPathStep> parentPath,
+            Set<ROResultPath> results,
             ROSearchListener listener,
             AtomicLong nextNodeId) {
 
         long nodeId = nextNodeId.getAndIncrement();
+        List<ROPathStep> path = new ArrayList<>(parentPath);
+        path.add(new ROPathStep(nodeId, branchLabel));
+        List<ROPathStep> immutablePath = List.copyOf(path);
+
         notifyCreated(listener, nodeId, parentId, branchLabel, processor);
 
         return CompletableFuture
                 .supplyAsync(processor::process, FORK_JOIN_POOL)
                 .thenCompose(result -> continueExploring(
-                        processor, result, results, listener, nextNodeId, nodeId));
+                        processor, result, results, listener, nextNodeId, nodeId, immutablePath));
     }
 
     private static <C extends ROContext> CompletableFuture<Void> continueExploring(
             ROPro<C> processor,
             ROResult result,
-            Set<ROResult> results,
+            Set<ROResultPath> results,
             ROSearchListener listener,
             AtomicLong nextNodeId,
-            long nodeId) {
+            long nodeId,
+            List<ROPathStep> path) {
 
         ROStatus status = processor.getStatus();
         notifyCompleted(listener, nodeId, status, result);
@@ -82,7 +135,7 @@ public final class RecursionFinder {
             case FAILED -> CompletableFuture.completedFuture(null);
 
             case RESOLVED -> {
-                results.add(result);
+                results.add(new ROResultPath(result, path));
                 yield CompletableFuture.completedFuture(null);
             }
 
@@ -92,6 +145,7 @@ public final class RecursionFinder {
                                 branch.processor(),
                                 branch.label(),
                                 nodeId,
+                                path,
                                 results,
                                 listener,
                                 nextNodeId))
@@ -125,6 +179,16 @@ public final class RecursionFinder {
             listener.onNodeCompleted(nodeId, status, result);
         } catch (RuntimeException exception) {
             System.err.println("Search listener failed while completing node: " + exception);
+        }
+    }
+
+    private static void notifySearchCompleted(
+            ROSearchListener listener,
+            @Nullable ROResultPath bestResult) {
+        try {
+            listener.onSearchCompleted(bestResult);
+        } catch (RuntimeException exception) {
+            System.err.println("Search listener failed after search completion: " + exception);
         }
     }
 }
