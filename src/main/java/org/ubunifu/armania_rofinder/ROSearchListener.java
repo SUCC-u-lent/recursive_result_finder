@@ -18,4 +18,7 @@ public interface ROSearchListener {
             long nodeId,
             ROStatus status,
             ROResult result) {}
+
+    /** Called after the full search has completed and its best result is known. */
+    default void onSearchCompleted(ROResultPath bestResult) {}
 }
