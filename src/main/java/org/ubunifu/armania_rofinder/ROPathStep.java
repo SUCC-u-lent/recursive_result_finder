@@ -1,6 +1,5 @@
 package org.ubunifu.armania_rofinder;
 
-import java.util.List;
 import java.util.Objects;
 
 /**
