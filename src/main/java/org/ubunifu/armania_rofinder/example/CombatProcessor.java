@@ -5,7 +5,6 @@ import org.ubunifu.armania_rofinder.*;
 import java.util.*;
 
 public class CombatProcessor extends ROPro<CombatContext> {
-
     private final CombatContext context;
 
     public CombatProcessor(CombatContext context) {
@@ -20,7 +19,7 @@ public class CombatProcessor extends ROPro<CombatContext> {
                 + context.allyHealth
                 - (context.enemyHealth * 2); // enemy weight more.
 
-        return new ROResult(weight, weight, 0);
+        return new ROResult(this,this.context,weight, weight, 0);
     }
 
     @Override
@@ -40,6 +39,8 @@ public class CombatProcessor extends ROPro<CombatContext> {
         ATTACK {
             @Override
             public ROBranch<CombatContext> createBranch(CombatContext context) {
+                CombatProcessor previousProcessor = context.getPreviousResult() != null ? context.getPreviousResult().getUsedProcessor() : null;
+                if (previousProcessor != null && previousProcessor.getStatus() == GUARD) return new ROBranch<>(name(), new CombatProcessor(context));
                 return new ROBranch<>(name(), new CombatProcessor(context.hurtEnemy(1)));
             }
         },

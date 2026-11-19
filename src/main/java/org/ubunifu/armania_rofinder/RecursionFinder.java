@@ -93,9 +93,6 @@ public final class RecursionFinder {
             AtomicLong nextNodeId,
             long nodeId,
             List<ROPathStep> path) {
-
-        // Save this node's result before creating children. Each child context
-        // can then retrieve it through getPreviousResult().
         processor.getContext().setResult(result);
 
         ROStatus status = processor.getStatus();
