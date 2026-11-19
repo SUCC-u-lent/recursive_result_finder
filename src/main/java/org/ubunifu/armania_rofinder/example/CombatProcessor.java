@@ -39,31 +39,31 @@ public class CombatProcessor extends ROPro<CombatContext> {
         ATTACK {
             @Override
             public ROBranch<CombatContext> createBranch(CombatContext context) {
-                return new ROBranch<>(name(), new CombatProcessor(context.hurtEnemy(1)));
+                return new ROBranch<>(name(), new CombatProcessor(context.hurtEnemy(1).receiveAttack(1)));
             }
         },
         HEAL_SELF {
             @Override
             public ROBranch<CombatContext> createBranch(CombatContext context) {
-                return new ROBranch<>(name(), new CombatProcessor(context.healSelf(1)));
+                return new ROBranch<>(name(), new CombatProcessor(context.healSelf(1).receiveAttack(1)));
             }
         },
         HEAL_OTHER {
             @Override
             public ROBranch<CombatContext> createBranch(CombatContext context) {
-                return new ROBranch<>(name(), new CombatProcessor(context.healAlly(1)));
+                return new ROBranch<>(name(), new CombatProcessor(context.healAlly(1).receiveAttack(1)));
             }
         },
         GUARD {
             @Override
             public ROBranch<CombatContext> createBranch(CombatContext context) {
-                return new ROBranch<>(name(), new CombatProcessor(context.guard()));
+                return new ROBranch<>(name(), new CombatProcessor(context.guard().receiveAttack(1)));
             }
         },
-        INCOMING_ATTACK {
+        WAIT {
             @Override
             public ROBranch<CombatContext> createBranch(CombatContext context) {
-                return new ROBranch<>(name(), new CombatProcessor(context.receiveAttack(1)));
+                return new ROBranch<>(name(), new CombatProcessor(context.healSelf(-1).receiveAttack(1)));
             }
         };
 
