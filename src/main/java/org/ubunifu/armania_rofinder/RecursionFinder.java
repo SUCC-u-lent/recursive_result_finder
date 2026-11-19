@@ -46,8 +46,9 @@ public final class RecursionFinder {
 
         return CompletableFuture
                 .supplyAsync(processor::process, FORK_JOIN_POOL)
-                .thenCompose(result -> continueExploring(
-                        processor, result, results, listener, nextNodeId, rootId));
+                .thenAccept(result -> continueExploring(
+                        processor, result, results, listener, nextNodeId, rootId))
+                .thenApply((_)->results);
     }
 
     private static <C extends ROContext> CompletableFuture<Void> exploreAsync(

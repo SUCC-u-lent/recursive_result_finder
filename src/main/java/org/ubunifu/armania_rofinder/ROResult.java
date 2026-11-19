@@ -1,6 +1,7 @@
 package org.ubunifu.armania_rofinder;
 
 public final class ROResult {
+    final ROAction[] actions;
     final double weight, heuristic;
     final double error;
 
@@ -11,7 +12,9 @@ public final class ROResult {
         return this.weight + this.error;
     }
 
-    public ROResult(double weight, double heuristic, double error) {
+    public ROResult(ROAction[] actions,double weight, double heuristic, double error) {
+        this.actions = actions;
+
         this.weight = weight;
         this.heuristic = heuristic;
         this.error = error;
