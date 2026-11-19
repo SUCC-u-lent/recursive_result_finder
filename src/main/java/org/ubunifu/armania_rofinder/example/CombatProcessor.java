@@ -18,7 +18,7 @@ public class CombatProcessor extends ROPro<CombatContext> {
         double weight =
                 context.actorHealth
                 + context.allyHealth
-                - context.enemyHealth;
+                - (context.enemyHealth * 2); // enemy weight more.
 
         return new ROResult(weight, weight, 0);
     }
@@ -40,29 +40,31 @@ public class CombatProcessor extends ROPro<CombatContext> {
         ATTACK {
             @Override
             public ROBranch<CombatContext> createBranch(CombatContext context) {
-                return new ROBranch<>(name(),
-                        new CombatProcessor(context.hurtEnemy(1)));
+                return new ROBranch<>(name(), new CombatProcessor(context.hurtEnemy(1)));
             }
         },
         HEAL_SELF {
             @Override
             public ROBranch<CombatContext> createBranch(CombatContext context) {
-                return new ROBranch<>(name(),
-                        new CombatProcessor(context.healSelf(1)));
+                return new ROBranch<>(name(), new CombatProcessor(context.healSelf(1)));
             }
         },
         HEAL_OTHER {
             @Override
             public ROBranch<CombatContext> createBranch(CombatContext context) {
-                return new ROBranch<>(name(),
-                        new CombatProcessor(context.healAlly(1)));
+                return new ROBranch<>(name(), new CombatProcessor(context.healAlly(1)));
+            }
+        },
+        GUARD {
+            @Override
+            public ROBranch<CombatContext> createBranch(CombatContext context) {
+                return new ROBranch<>(name(),new CombatProcessor(context)); // Does nothing TECHNICALLY. it affects others.
             }
         },
         WAIT {
             @Override
             public ROBranch<CombatContext> createBranch(CombatContext context) {
-                return new ROBranch<>(name(),
-                        new CombatProcessor(context.healSelf(-1)));
+                return new ROBranch<>(name(), new CombatProcessor(context.healSelf(-1)));
             }
         };
 

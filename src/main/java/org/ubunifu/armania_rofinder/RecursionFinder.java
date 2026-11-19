@@ -11,50 +11,20 @@ public final class RecursionFinder {
     private static final ForkJoinPool FORK_JOIN_POOL = new ForkJoinPool();
 
     private RecursionFinder() {}
-
-    /**
-     * Backwards-compatible API: returns only the winning ROResult.
-     */
-    public static <C extends ROContext> CompletableFuture<@Nullable ROResult> findResult(
-            ROPro<C> processor) {
-        return findResult(processor, ROSearchListener.NONE);
-    }
-
-    /**
-     * Backwards-compatible API: returns only the winning ROResult.
-     */
-    public static <C extends ROContext> CompletableFuture<@Nullable ROResult> findResult(
-            ROPro<C> processor,
-            ROSearchListener listener) {
-        return findBestResultWithPath(processor, listener)
-                .thenApply(best -> best == null ? null : best.result());
-    }
-
-    /**
-     * Returns the winning result and the exact route of branch labels that produced it.
-     * The existing lowest-effective-heuristic selection rule is preserved.
-     */
     public static <C extends ROContext> CompletableFuture<@Nullable ROResultPath>
     findBestResultWithPath(ROPro<C> processor) {
         return findBestResultWithPath(processor, ROSearchListener.NONE);
     }
-
-    public static <C extends ROContext> CompletableFuture<@Nullable ROResultPath>
-    findBestResultWithPath(ROPro<C> processor, ROSearchListener listener) {
+    public static <C extends ROContext> CompletableFuture<@Nullable ROResultPath> findBestResultWithPath(ROPro<C> processor, ROSearchListener listener) {
         return findResultsWithPathsAsync(processor, listener)
                 .thenApply(results -> {
                     ROResultPath best = results.stream()
-                            .min(Comparator.comparing(
-                                    path -> path.result().getEffectiveHeuristic()))
-                            .orElse(null);
+                        .min(Comparator.comparing(c->c.result().getEffectiveHeuristic()))
+                        .orElse(null);
                     notifySearchCompleted(listener, best);
                     return best;
                 });
     }
-
-    /**
-     * Returns every resolved result together with the route that produced it.
-     */
     public static <C extends ROContext> CompletableFuture<Set<ROResultPath>>
     findResultsWithPathsAsync(ROPro<C> processor) {
         return findResultsWithPathsAsync(processor, ROSearchListener.NONE);
@@ -77,10 +47,6 @@ public final class RecursionFinder {
                         processor, result, results, listener, nextNodeId, rootId, rootPath))
                 .thenApply(ignored -> results);
     }
-
-    /**
-     * Existing API: returns all resolved ROResult values without route metadata.
-     */
     public static <C extends ROContext> CompletableFuture<Set<ROResult>> findResultsAsync(
             ROPro<C> processor) {
         return findResultsAsync(processor, ROSearchListener.NONE);

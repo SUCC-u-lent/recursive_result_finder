@@ -2,7 +2,7 @@ package org.ubunifu.armania_rofinder.example;
 
 import org.jetbrains.annotations.Nullable;
 import org.ubunifu.armania_rofinder.*;
-import org.ubunifu.armania_rofinder.visualizer.ROSearchGraphVisualizer;
+import org.ubunifu.armania_rofinder.example.visualizer.ROSearchGraphVisualizer;
 
 import java.util.concurrent.*;
 

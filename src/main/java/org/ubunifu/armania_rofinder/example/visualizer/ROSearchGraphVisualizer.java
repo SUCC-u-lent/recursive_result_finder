@@ -1,4 +1,4 @@
-package org.ubunifu.armania_rofinder.visualizer;
+package org.ubunifu.armania_rofinder.example.visualizer;
 
 import org.ubunifu.armania_rofinder.*;
 
@@ -14,13 +14,6 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
-/**
- * Optional Swing graph visualiser for recursive searches.
- *
- * The finder itself has no dependency on this class. Applications that do not
- * want a visual window can use findResult(processor) or
- * findBestResultWithPath(processor) without creating a visualiser.
- */
 public final class ROSearchGraphVisualizer implements ROSearchListener {
 
     private static final int NODE_WIDTH = 230;
@@ -155,7 +148,6 @@ public final class ROSearchGraphVisualizer implements ROSearchListener {
             setBackground(new Color(248, 249, 252));
             setOpaque(true);
 
-            // Dragging the canvas pans the scrollable graph in any direction.
             MouseAdapter panHandler = new MouseAdapter() {
                 private Point dragOrigin;
                 private Point viewportOrigin;
@@ -185,8 +177,8 @@ public final class ROSearchGraphVisualizer implements ROSearchListener {
                     int maxX = Math.max(0, getWidth() - viewport.getWidth());
                     int maxY = Math.max(0, getHeight() - viewport.getHeight());
                     viewport.setViewPosition(new Point(
-                            Math.max(0, Math.min(x, maxX)),
-                            Math.max(0, Math.min(y, maxY))));
+                            Math.clamp(x, 0, maxX),
+                            Math.clamp(y, 0, maxY)));
                 }
 
                 @Override
@@ -224,7 +216,6 @@ public final class ROSearchGraphVisualizer implements ROSearchListener {
             Map<Long, GraphNode> snapshot = Map.copyOf(nodes);
             Set<Long> winning = winningNodeIds;
 
-            // Draw connectors first; connectors on the selected route are highlighted.
             for (GraphNode node : snapshot.values()) {
                 if (node.parentId == null) continue;
                 GraphNode parent = snapshot.get(node.parentId);

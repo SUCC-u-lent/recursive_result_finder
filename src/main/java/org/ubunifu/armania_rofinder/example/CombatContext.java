@@ -7,10 +7,23 @@ public class CombatContext extends ROContext {
     final int actorHealth, allyHealth, enemyHealth;
 
     public CombatContext(int usedTurns, int actorHealth, int allyHealth, int enemyHealth) {
+        super();
         this.usedTurns = usedTurns;
         this.actorHealth = actorHealth;
         this.allyHealth = allyHealth;
         this.enemyHealth = enemyHealth;
+    }
+    public CombatContext(CombatContext previousContext, int usedTurns, int actorHealth, int allyHealth, int enemyHealth) {
+        super(previousContext);
+        this.usedTurns = usedTurns;
+        this.actorHealth = actorHealth;
+        this.allyHealth = allyHealth;
+        this.enemyHealth = enemyHealth;
+    }
+
+    @Override
+    protected ROContext deepClone() {
+        return new CombatContext(usedTurns, actorHealth, allyHealth, enemyHealth);
     }
 
     public CombatContext(int actorHealth, int allyHealth, int enemyHealth) {
@@ -19,6 +32,7 @@ public class CombatContext extends ROContext {
 
     public CombatContext hurtEnemy(int amount) {
         return new CombatContext(
+                this,
                 this.usedTurns + 1,
                 this.actorHealth,
                 this.allyHealth,
@@ -28,6 +42,7 @@ public class CombatContext extends ROContext {
 
     public CombatContext healAlly(int amount) {
         return new CombatContext(
+                this,
                 this.usedTurns + 1,
                 this.actorHealth,
                 this.allyHealth + amount,
@@ -37,6 +52,7 @@ public class CombatContext extends ROContext {
 
     public CombatContext healSelf(int amount) {
         return new CombatContext(
+                this,
                 this.usedTurns + 1,
                 this.actorHealth + amount,
                 this.allyHealth,
